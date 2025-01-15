@@ -1,0 +1,210 @@
+version: "3"
+
+services:
+  # Database service for the Person microservice
+  db-person:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "sd"
+      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
+    ports:
+      - "3308:3306"
+    volumes:
+      - person-db:/var/lib/mysql
+    networks:
+      - demo_net
+
+  # Person microservice
+  spring-person:
+    build:
+      context: ./spring-user
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3
+    environment:
+      - DB_IP=db-person
+      - DB_PORT=3306
+      - DB_DBNAME=sd
+      - DB_USER=root
+      - DB_PASSWORD=Gesicasql1vtm
+    networks:
+      - demo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.person.rule=Host(`localhost`) || PathPrefix(`/person`)"
+      - "traefik.http.middlewares.person-strip.stripprefix.prefixes=/person"
+      - "traefik.http.routers.person.middlewares=person-strip"
+      - "traefik.http.services.person.loadbalancer.server.port=8081"
+
+  # Database service for the Device microservice
+  db-device:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "devices_sd"
+      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
+    ports:
+      - "3307:3306"
+    volumes:
+      - device-db:/var/lib/mysql
+    networks:
+      - demo_net
+
+  # Device microservice
+  spring-device:
+    build:
+      context: ./spring-device
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3
+    environment:
+      - DB_IP=db-device
+      - DB_PORT=3306
+      - DB_DBNAME=devices_sd
+      - DB_USER=root
+      - DB_PASSWORD=Gesicasql1vtm
+    networks:
+      - demo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.spring-device.rule=Host(`device.localhost`) || PathPrefix(`/device`)"
+      - "traefik.http.middlewares.spring-device-strip.stripprefix.prefixes=/device"
+      - "traefik.http.routers.spring-device.middlewares=spring-device-strip"
+      - "traefik.http.services.spring-device.loadbalancer.server.port=8082"
+
+  # Frontend service
+  react_app:
+    build:
+      context: ./react/my-react-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./react/my-react-app:/app
+      - /app/node_modules
+    environment:
+      - CI=true
+    networks:
+      - demo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.react-app.rule=Host(`frontend.localhost`) || PathPrefix(`/frontend`)"
+      - "traefik.http.middlewares.react-app-strip.stripprefix.prefixes=/frontend"
+      - "traefik.http.routers.react-app.middlewares=react-app-strip"
+      - "traefik.http.services.react-app.loadbalancer.server.port=3000"
+
+  # RabbitMQ service
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - demo_net
+
+  # Monitoring microservice
+  monitoring-service:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-monitoring:3306/monitoring_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=Gesicasql1vtm
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+    depends_on:
+      - rabbitmq
+      - db-monitoring
+    networks:
+      - demo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring-service.rule=Host(`monitor.localhost`) || PathPrefix(`/monitor`)"
+      - "traefik.http.middlewares.monitoring-service-strip.stripprefix.prefixes=/monitor"
+      - "traefik.http.routers.monitoring-service.middlewares=monitoring-service-strip"
+      - "traefik.http.services.monitoring-service.loadbalancer.server.port=8083"
+
+  # Database service for the Monitoring microservice
+  db-monitoring:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "monitoring_db"
+      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
+    ports:
+      - "3309:3306"
+    volumes:
+      - monitoring-db:/var/lib/mysql
+    networks:
+      - demo_net
+
+  # Chat Microservice
+  chat-service:
+    build:
+      context: ./chat
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db-chat:3306/chat_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=Gesicasql1vtm
+      - USERS_SERVICE_URL=http://spring-person:8081
+    depends_on:
+      - db-chat
+    networks:
+      - demo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat-service.rule=Host(`chat.localhost`) || PathPrefix(`/chat`)"
+      - "traefik.http.middlewares.chat-service-strip.stripprefix.prefixes=/chat"
+      - "traefik.http.routers.chat-service.middlewares=chat-service-strip"
+      - "traefik.http.services.chat-service.loadbalancer.server.port=8085"
+
+  # Database service for the Chat microservice
+  db-chat:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: "chat_db"
+      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
+    ports:
+      - "3310:3306"
+    volumes:
+      - chat-db:/var/lib/mysql
+    networks:
+      - demo_net
+
+  # Reverse Proxy
+  reverse-proxy:
+    image: traefik:v3.2
+    command:
+      - --api.insecure=true
+      - --providers.docker
+      - --accesslog=true
+      - --log.level=DEBUG
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8084:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - traefik_logs:/var/log/traefik
+    networks:
+      - demo_net
+
+volumes:
+  person-db:
+  device-db:
+  monitoring-db:
+  chat-db:
+  traefik_logs:
+
+networks:
+  demo_net:
+    driver: bridge
