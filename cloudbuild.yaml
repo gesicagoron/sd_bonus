@@ -25,7 +25,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/chat-service:latest']
 
-# Define the images as build artifacts
+# Define the images as build artifacts test
 images:
   - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-person:latest'
   - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-device:latest'
