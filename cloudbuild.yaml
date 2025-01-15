@@ -1,50 +1,34 @@
 steps:
-  # 1. Construiește imaginile Docker pentru toate serviciile definite în docker-compose.yml
+  # Build and push each service image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['compose', '-f', 'docker-compose.yml', 'build']
-
-  # 2. Push imaginile Docker în Artifact Registry pentru toate serviciile
+    args: ['build', '-t', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-person:latest', './spring-user']
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['compose', '-f', 'docker-compose.yml', 'push']
+    args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-person:latest']
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-device:latest', './spring-device']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-device:latest']
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/react-app:latest', './react/my-react-app']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/react-app:latest']
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/monitoring-service:latest', './monitoring']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/monitoring-service:latest']
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/chat-service:latest', './chat']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/chat-service:latest']
 
-  # 3. Deploy aplicația pe Cloud Run folosind imaginile construite
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud run deploy spring-person \
-          --image gcr.io/$PROJECT_ID/spring-person \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
-        gcloud run deploy spring-device \
-          --image gcr.io/$PROJECT_ID/spring-device \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
-        gcloud run deploy react-app \
-          --image gcr.io/$PROJECT_ID/react-app \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
-        gcloud run deploy monitoring-service \
-          --image gcr.io/$PROJECT_ID/monitoring-service \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
-        gcloud run deploy chat-service \
-          --image gcr.io/$PROJECT_ID/chat-service \
-          --region us-central1 \
-          --platform managed \
-          --allow-unauthenticated
-
-# Opțional: definirea artefactelor care vor fi salvate
-artifacts:
-  images:
-    - 'gcr.io/$PROJECT_ID/spring-person'
-    - 'gcr.io/$PROJECT_ID/spring-device'
-    - 'gcr.io/$PROJECT_ID/react-app'
-    - 'gcr.io/$PROJECT_ID/monitoring-service'
-    - 'gcr.io/$PROJECT_ID/chat-service'
-
+# Define the images as build artifacts
+images:
+  - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-person:latest'
+  - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-device:latest'
+  - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/react-app:latest'
+  - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/monitoring-service:latest'
+  - 'europe-west8-docker.pkg.dev/sd-bonus/docker-repo/chat-service:latest'

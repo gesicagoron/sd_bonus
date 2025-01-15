@@ -17,6 +17,7 @@ services:
 
   # Person microservice
   spring-person:
+    image: europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-person:latest
     build:
       context: ./spring-user
       dockerfile: Dockerfile
@@ -53,6 +54,7 @@ services:
 
   # Device microservice
   spring-device:
+    image: europe-west8-docker.pkg.dev/sd-bonus/docker-repo/spring-device:latest
     build:
       context: ./spring-device
       dockerfile: Dockerfile
@@ -75,6 +77,7 @@ services:
 
   # Frontend service
   react_app:
+    image: europe-west8-docker.pkg.dev/sd-bonus/docker-repo/react-app:latest
     build:
       context: ./react/my-react-app
       dockerfile: Dockerfile
@@ -106,6 +109,7 @@ services:
 
   # Monitoring microservice
   monitoring-service:
+    image: europe-west8-docker.pkg.dev/sd-bonus/docker-repo/monitoring-service:latest
     build:
       context: ./monitoring
       dockerfile: Dockerfile
@@ -129,22 +133,9 @@ services:
       - "traefik.http.routers.monitoring-service.middlewares=monitoring-service-strip"
       - "traefik.http.services.monitoring-service.loadbalancer.server.port=8083"
 
-  # Database service for the Monitoring microservice
-  db-monitoring:
-    image: mysql
-    restart: always
-    environment:
-      MYSQL_DATABASE: "monitoring_db"
-      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
-    ports:
-      - "3309:3306"
-    volumes:
-      - monitoring-db:/var/lib/mysql
-    networks:
-      - demo_net
-
   # Chat Microservice
   chat-service:
+    image: europe-west8-docker.pkg.dev/sd-bonus/docker-repo/chat-service:latest
     build:
       context: ./chat
       dockerfile: Dockerfile
@@ -165,38 +156,6 @@ services:
       - "traefik.http.middlewares.chat-service-strip.stripprefix.prefixes=/chat"
       - "traefik.http.routers.chat-service.middlewares=chat-service-strip"
       - "traefik.http.services.chat-service.loadbalancer.server.port=8085"
-
-  # Database service for the Chat microservice
-  db-chat:
-    image: mysql
-    restart: always
-    environment:
-      MYSQL_DATABASE: "chat_db"
-      MYSQL_ROOT_PASSWORD: "Gesicasql1vtm"
-    ports:
-      - "3310:3306"
-    volumes:
-      - chat-db:/var/lib/mysql
-    networks:
-      - demo_net
-
-  # Reverse Proxy
-  reverse-proxy:
-    image: traefik:v3.2
-    command:
-      - --api.insecure=true
-      - --providers.docker
-      - --accesslog=true
-      - --log.level=DEBUG
-      - --entrypoints.web.address=:80
-    ports:
-      - "80:80"
-      - "8084:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - traefik_logs:/var/log/traefik
-    networks:
-      - demo_net
 
 volumes:
   person-db:
